@@ -1,13 +1,13 @@
-package org.baej.modbusclitool.modbus;
+package org.baej.modbusclitool.modbus.client;
 
 import org.springframework.stereotype.Component;
 
 @Component
 public class ModbusClientConnectionParams {
 
-    private String host = "192.168.94.10";
+    private String host = "127.0.0.1";
     private int port = 502;
-    private int pollingInverval = 1000;
+    private int timeout = 5000;
 
     public String getHost() {
         return host;
@@ -25,11 +25,11 @@ public class ModbusClientConnectionParams {
         this.port = port;
     }
 
-    public int getPollingInverval() {
-        return pollingInverval;
+    public int getTimeout() {
+        return timeout;
     }
 
-    public void setPollingInverval(int pollingInverval) {
-        this.pollingInverval = pollingInverval;
+    public void setTimeout(int timeout) {
+        this.timeout = timeout;
     }
 }

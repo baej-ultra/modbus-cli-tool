@@ -1,10 +1,12 @@
-package org.baej.modbusclitool.modbus;
+package org.baej.modbusclitool.modbus.client;
 
 import com.digitalpetri.modbus.client.ModbusClient;
 import com.digitalpetri.modbus.client.ModbusTcpClient;
 import com.digitalpetri.modbus.exceptions.ModbusExecutionException;
 import com.digitalpetri.modbus.tcp.client.NettyTcpClientTransport;
 import org.springframework.stereotype.Component;
+
+import java.time.Duration;
 
 @Component
 public class ModbusConnectionManager {
@@ -21,6 +23,7 @@ public class ModbusConnectionManager {
             var transport = NettyTcpClientTransport.create(cfg -> {
                 cfg.hostname = connectionParams.getHost();
                 cfg.port = connectionParams.getPort();
+                cfg.connectTimeout = Duration.ofMillis(connectionParams.getTimeout());
             });
 
             modbusClient = ModbusTcpClient.create(transport);
