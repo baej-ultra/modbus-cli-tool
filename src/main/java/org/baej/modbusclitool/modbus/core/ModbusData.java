@@ -48,19 +48,11 @@ public class ModbusData {
         for (int i = 0; i < valueCount; i++) {
             int index = i * dataFormat.getValueLength();
             var buffer = ByteBuffer.wrap(dataBytes, index, valueLength).order(bo);
-            switch (dataFormat){
-                case INT:
-                    values.put(index, buffer.getShort());
-                    break;
-                case LONG_INT:
-                    values.put(index, buffer.getInt());
-                    break;
-                case FLOAT:
-                    values.put(index, buffer.getFloat());
-                    break;
-                case DOUBLE:
-                    values.put(index, buffer.getDouble());
-                    break;
+            switch (dataFormat) {
+                case INT -> values.put(index, buffer.getShort());
+                case LONG_INT -> values.put(index, buffer.getInt());
+                case FLOAT -> values.put(index, buffer.getFloat());
+                case DOUBLE -> values.put(index, buffer.getDouble());
             }
         }
     }
