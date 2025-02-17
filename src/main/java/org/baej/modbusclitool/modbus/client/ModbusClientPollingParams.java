@@ -13,6 +13,7 @@ public class ModbusClientPollingParams {
     private ModbusDataFormat dataFormat = ModbusDataFormat.FLOAT;
     private ModbusDataByteOrder byteOrder = ModbusDataByteOrder.BIG_ENDIAN;
     private boolean byteSwap = false;
+    private ModbusClientReadFunction readFunction = ModbusClientReadFunction.HOLDING_REGISTERS;
 
     public int getUnitId() {
         return unitId;
@@ -60,5 +61,13 @@ public class ModbusClientPollingParams {
 
     public void setQuantity(int quantity) {
         this.quantity = quantity;
+    }
+
+    public ModbusClientReadFunction getReadFunction() {
+        return readFunction;
+    }
+
+    public void setReadFunction(ModbusClientReadFunction readFunction) {
+        this.readFunction = readFunction;
     }
 }

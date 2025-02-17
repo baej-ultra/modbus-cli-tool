@@ -1,17 +1,14 @@
 package org.baej.modbusclitool.modbus.client;
 
 import com.digitalpetri.modbus.client.ModbusClient;
-import com.digitalpetri.modbus.exceptions.ModbusExecutionException;
-import com.digitalpetri.modbus.exceptions.ModbusResponseException;
-import com.digitalpetri.modbus.exceptions.ModbusTimeoutException;
-import com.digitalpetri.modbus.pdu.ReadHoldingRegistersRequest;
 import jakarta.annotation.PostConstruct;
 import org.baej.modbusclitool.modbus.ModbusTerminalDisplay;
 import org.baej.modbusclitool.modbus.core.ModbusData;
 import org.baej.modbusclitool.modbus.core.ModbusDataObservable;
-import org.springframework.shell.table.Table;
 import org.springframework.stereotype.Service;
 
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -27,6 +24,9 @@ public class ModbusDataPollingService extends ModbusDataObservable {
     private boolean isPolling;
     private ScheduledFuture<?> scheduledFuture;
 
+    private final Map<ModbusClientReadFunction, ModbusRequestStrategy>
+            strategyMap = new EnumMap<>(ModbusClientReadFunction.class);
+
     public ModbusDataPollingService(ModbusConnectionManager connectionManager,
                                     ModbusClientPollingParams pollingParams,
                                     ModbusTerminalDisplay modbusTerminalDisplay) {
@@ -34,6 +34,12 @@ public class ModbusDataPollingService extends ModbusDataObservable {
         this.pollingParams = pollingParams;
         this.modbusTerminalDisplay = modbusTerminalDisplay;
         executorService = Executors.newSingleThreadScheduledExecutor();
+
+        // Register strategies
+        strategyMap.put(ModbusClientReadFunction.INPUT_REGISTERS,
+                new InputRegistersStrategy());
+        strategyMap.put(ModbusClientReadFunction.HOLDING_REGISTERS,
+                new HoldingRegistersStrategy());
     }
 
     @PostConstruct
@@ -46,8 +52,13 @@ public class ModbusDataPollingService extends ModbusDataObservable {
             throw new RuntimeException("Client not connected");
         }
 
-        scheduledFuture = executorService.scheduleWithFixedDelay(this::poll, 0,
-                interval, TimeUnit.MILLISECONDS);
+        // Start polling
+        scheduledFuture = executorService.scheduleWithFixedDelay(
+                this::poll,
+                0,
+                interval,
+                TimeUnit.MILLISECONDS
+        );
         isPolling = true;
     }
 
@@ -61,19 +72,20 @@ public class ModbusDataPollingService extends ModbusDataObservable {
     }
 
     public void poll() {
+        ModbusData modbusData = requestModbusData();
+        notifyObservers(modbusData);
+    }
+
+    private ModbusData requestModbusData() {
         ModbusClient modbusClient = connectionManager.getModbusClient();
-        Table table = null;
-        var req = new ReadHoldingRegistersRequest(pollingParams.getStartingAddress(), pollingParams.getQuantity());
-        try {
-            var response = modbusClient.readHoldingRegisters(pollingParams.getUnitId(), req);
-            byte[] registers = response.registers();
+        var readFunction = pollingParams.getReadFunction();
 
-            ModbusData modbusData = new ModbusData(registers, pollingParams.getDataFormat(),
-                    pollingParams.getByteOrder(), pollingParams.isByteSwap());
-
-            notifyObservers(modbusData);
-        } catch (ModbusExecutionException | ModbusResponseException | ModbusTimeoutException e) {
-            throw new RuntimeException(e);
+        ModbusRequestStrategy strategy = strategyMap.get(readFunction);
+        if (strategy == null) {
+            throw new IllegalArgumentException(
+                    "Unsupported read function: " + readFunction
+            );
         }
+        return strategy.request(modbusClient, pollingParams);
     }
 }

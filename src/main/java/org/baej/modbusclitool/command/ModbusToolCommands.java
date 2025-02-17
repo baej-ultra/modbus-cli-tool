@@ -2,10 +2,8 @@ package org.baej.modbusclitool.command;
 
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.baej.modbusclitool.exception.InvalidModbusConnectionParameterException;
-import org.baej.modbusclitool.modbus.client.ModbusClientConnectionParams;
-import org.baej.modbusclitool.modbus.client.ModbusClientPollingParams;
-import org.baej.modbusclitool.modbus.client.ModbusConnectionManager;
-import org.baej.modbusclitool.modbus.client.ModbusDataPollingService;
+import org.baej.modbusclitool.modbus.client.*;
+import org.baej.modbusclitool.modbus.core.ModbusDataByteOrder;
 import org.baej.modbusclitool.modbus.core.ModbusDataFormat;
 import org.jline.terminal.Terminal;
 import org.springframework.shell.component.flow.ComponentFlow;
@@ -168,6 +166,7 @@ public class ModbusToolCommands {
         modbusClientPollingParams.setStartingAddress(Integer.parseInt(result.get("start")));
         modbusClientPollingParams.setQuantity(Integer.parseInt(result.get("quantity")));
         modbusClientPollingParams.setDataFormat(ModbusDataFormat.valueOf(result.get("format")));
+        modbusClientPollingParams.setByteOrder(ModbusDataByteOrder.valueOf(result.get("endian")));
         modbusClientPollingParams.setByteSwap(result.get("endian").equals("yes"));
     }
 
