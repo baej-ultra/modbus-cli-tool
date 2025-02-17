@@ -1,7 +1,7 @@
 package org.baej.modbusclitool.modbus.client;
 
 import org.baej.modbusclitool.modbus.core.ModbusDataByteOrder;
-import org.baej.modbusclitool.modbus.core.ModbusDataFormat;
+import org.baej.modbusclitool.modbus.core.ModbusDataDisplayFormat;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -10,7 +10,7 @@ public class ModbusClientPollingParams {
     private int unitId = 1;
     private int startingAddress = 0;
     private int quantity = 10;
-    private ModbusDataFormat dataFormat = ModbusDataFormat.FLOAT;
+    private ModbusDataDisplayFormat dataFormat = ModbusDataDisplayFormat.FLOAT;
     private ModbusDataByteOrder byteOrder = ModbusDataByteOrder.BIG_ENDIAN;
     private boolean byteSwap = false;
     private ModbusClientReadFunction readFunction = ModbusClientReadFunction.HOLDING_REGISTERS;
@@ -23,11 +23,11 @@ public class ModbusClientPollingParams {
         this.unitId = unitId;
     }
 
-    public ModbusDataFormat getDataFormat() {
+    public ModbusDataDisplayFormat getDataFormat() {
         return dataFormat;
     }
 
-    public void setDataFormat(ModbusDataFormat dataFormat) {
+    public void setDataFormat(ModbusDataDisplayFormat dataFormat) {
         this.dataFormat = dataFormat;
     }
 

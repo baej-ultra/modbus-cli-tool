@@ -2,15 +2,14 @@ package org.baej.modbusclitool.command;
 
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.baej.modbusclitool.exception.InvalidModbusConnectionParameterException;
-import org.baej.modbusclitool.modbus.client.*;
+import org.baej.modbusclitool.modbus.client.ModbusClientConnectionParams;
+import org.baej.modbusclitool.modbus.client.ModbusClientPollingParams;
+import org.baej.modbusclitool.modbus.client.ModbusConnectionManager;
+import org.baej.modbusclitool.modbus.client.ModbusDataPollingService;
 import org.baej.modbusclitool.modbus.core.ModbusDataByteOrder;
-import org.baej.modbusclitool.modbus.core.ModbusDataFormat;
-import org.jline.terminal.Terminal;
+import org.baej.modbusclitool.modbus.core.ModbusDataDisplayFormat;
 import org.springframework.shell.component.flow.ComponentFlow;
 import org.springframework.shell.component.flow.SelectItem;
-import org.springframework.shell.component.view.TerminalUI;
-import org.springframework.shell.component.view.event.EventLoop;
-import org.springframework.shell.component.view.event.KeyEvent;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 import org.springframework.shell.standard.ShellOption;
@@ -19,6 +18,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import static org.baej.modbusclitool.modbus.client.ModbusClientReadFunction.*;
+import static org.baej.modbusclitool.modbus.core.ModbusDataByteOrder.BIG_ENDIAN;
+import static org.baej.modbusclitool.modbus.core.ModbusDataByteOrder.SMALL_ENDIAN;
+import static org.baej.modbusclitool.modbus.core.ModbusDataDisplayFormat.*;
+
 @ShellComponent
 public class ModbusToolCommands {
 
@@ -26,19 +30,18 @@ public class ModbusToolCommands {
     private final ModbusDataPollingService pollingService;
     private final ModbusClientConnectionParams connectionParams;
     private final ComponentFlow.Builder componentFlowBuilder;
-    private final Terminal terminal;
     private final ModbusClientPollingParams modbusClientPollingParams;
     public volatile int i = 0;
 
     public ModbusToolCommands(ModbusConnectionManager connectionManager,
                               ModbusDataPollingService pollingService,
                               ModbusClientConnectionParams connectionParams,
-                              ComponentFlow.Builder componentFlowBuilder, Terminal terminal, ModbusClientPollingParams modbusClientPollingParams) {
+                              ComponentFlow.Builder componentFlowBuilder,
+                              ModbusClientPollingParams modbusClientPollingParams) {
         this.connectionManager = connectionManager;
         this.pollingService = pollingService;
         this.connectionParams = connectionParams;
         this.componentFlowBuilder = componentFlowBuilder;
-        this.terminal = terminal;
         this.modbusClientPollingParams = modbusClientPollingParams;
     }
 
@@ -55,19 +58,7 @@ public class ModbusToolCommands {
 
     @ShellMethod(value = "Poll")
     public void poll(@ShellOption(defaultValue = "0") int interval) throws IOException {
-        if (interval == 0) {
-            pollingService.poll();
-        } else {
-            pollingService.startPolling(interval);
-            TerminalUI ui = new TerminalUI(terminal);
-            EventLoop eventLoop = ui.getEventLoop();
-            eventLoop.keyEvents()
-                    .subscribe(event -> {
-                        if (event.getPlainKey() == KeyEvent.Key.q && event.hasCtrl()) {
-                            pollingService.stopPolling();
-                        }
-                    });
-        }
+        pollingService.poll();
     }
 
     @ShellMethod(value = "Poll settings")
@@ -121,6 +112,15 @@ public class ModbusToolCommands {
 
     private void runPollingParametersFlow() {
         ComponentFlow flow = componentFlowBuilder.clone().reset()
+                .withSingleItemSelector("fun")
+                .name("Function")
+                .selectItems(List.of(
+                        SelectItem.of("01 Read coils", COILS.toString()),
+                        SelectItem.of("02 Read discrete inputs", DISCRETE_INPUTS.toString()),
+                        SelectItem.of("03 Read holding registers", HOLDING_REGISTERS.toString()),
+                        SelectItem.of("04 Read input registers", INPUT_REGISTERS.toString())
+                ))
+                .and()
                 .withStringInput("id")
                 .name("Unit ID")
                 .defaultValue(Integer.toString(modbusClientPollingParams.getUnitId()))
@@ -134,20 +134,20 @@ public class ModbusToolCommands {
                 .defaultValue(Integer.toString(modbusClientPollingParams.getQuantity()))
                 .and()
                 .withSingleItemSelector("format")
-                .name("Format")
+                .name("Display format")
                 .selectItems(List.of(
-                        SelectItem.of("Int16", "SHORT_INT"),
-                        SelectItem.of("Int32", "INT"),
-                        SelectItem.of("Int64", "LONG_INT"),
-                        SelectItem.of("Float", "FLOAT"),
-                        SelectItem.of("Double", "DOUBLE")
+                        SelectItem.of("Int16", SHORT_INT.toString()),
+                        SelectItem.of("Int32", INT.toString()),
+                        SelectItem.of("Int64", LONG_INT.toString()),
+                        SelectItem.of("Float", FLOAT.toString()),
+                        SelectItem.of("Double", DOUBLE.toString())
                 ))
                 .and()
                 .withSingleItemSelector("endian")
                 .name("Endianness")
                 .selectItems(List.of(
-                        SelectItem.of("Big-endian", "BIG_ENDIAN"),
-                        SelectItem.of("Small-endian", "SMALL_ENDIAN")
+                        SelectItem.of("Big-endian", BIG_ENDIAN.toString()),
+                        SelectItem.of("Small-endian", SMALL_ENDIAN.toString())
                 ))
                 .and()
                 .withSingleItemSelector("swap")
@@ -162,10 +162,11 @@ public class ModbusToolCommands {
         var result = flow
                 .run()
                 .getContext();
+
         modbusClientPollingParams.setUnitId(Integer.parseInt(result.get("id")));
         modbusClientPollingParams.setStartingAddress(Integer.parseInt(result.get("start")));
         modbusClientPollingParams.setQuantity(Integer.parseInt(result.get("quantity")));
-        modbusClientPollingParams.setDataFormat(ModbusDataFormat.valueOf(result.get("format")));
+        modbusClientPollingParams.setDataFormat(ModbusDataDisplayFormat.valueOf(result.get("format")));
         modbusClientPollingParams.setByteOrder(ModbusDataByteOrder.valueOf(result.get("endian")));
         modbusClientPollingParams.setByteSwap(result.get("endian").equals("yes"));
     }

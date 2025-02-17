@@ -7,11 +7,11 @@ import java.util.*;
 public class ModbusData {
 
     private final List<ModbusValue> values;
-    private final ModbusDataFormat dataFormat;
+    private final ModbusDataDisplayFormat dataFormat;
     private final ModbusDataByteOrder byteOrder;
     private final boolean byteSwap;
 
-    public ModbusData(byte[] dataBytes, ModbusDataFormat dataFormat, ModbusDataByteOrder byteOrder, boolean byteSwap) {
+    public ModbusData(byte[] dataBytes, ModbusDataDisplayFormat dataFormat, ModbusDataByteOrder byteOrder, boolean byteSwap) {
         values = new ArrayList<>(dataBytes.length / 4);
         this.byteSwap = byteSwap;
         this.dataFormat = dataFormat;
@@ -23,7 +23,7 @@ public class ModbusData {
         return Collections.unmodifiableList(values);
     }
 
-    public ModbusDataFormat getDataFormat() {
+    public ModbusDataDisplayFormat getDataFormat() {
         return dataFormat;
     }
 

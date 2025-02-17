@@ -11,7 +11,7 @@ class ModbusDataTest {
 //        );
 //        byte[] bytes = {(byte) 0x3F, (byte) 0x99, (byte) 0x99, (byte) 0x9A, (byte) 0x40, (byte) 0x2A, (byte) 0x3D, (byte) 0x71,
 //                (byte) 0x41, (byte) 0x2A, (byte) 0x66, (byte) 0x66};
-//        ModbusData md = new ModbusData(bytes, ModbusDataFormat.FLOAT, ModbusDataByteOrder.BIG_ENDIAN);
+//        ModbusData md = new ModbusData(bytes, ModbusDataDisplayFormat.FLOAT, ModbusDataByteOrder.BIG_ENDIAN);
 //
 //
 //        assertEquals(3, md.getValues().size());

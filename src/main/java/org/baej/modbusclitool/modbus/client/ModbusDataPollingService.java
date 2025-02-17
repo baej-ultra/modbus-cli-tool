@@ -3,6 +3,7 @@ package org.baej.modbusclitool.modbus.client;
 import com.digitalpetri.modbus.client.ModbusClient;
 import jakarta.annotation.PostConstruct;
 import org.baej.modbusclitool.modbus.ModbusTerminalDisplay;
+import org.baej.modbusclitool.modbus.client.strategy.*;
 import org.baej.modbusclitool.modbus.core.ModbusData;
 import org.baej.modbusclitool.modbus.core.ModbusDataObservable;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,10 @@ public class ModbusDataPollingService extends ModbusDataObservable {
                 new InputRegistersStrategy());
         strategyMap.put(ModbusClientReadFunction.HOLDING_REGISTERS,
                 new HoldingRegistersStrategy());
+        strategyMap.put(ModbusClientReadFunction.DISCRETE_INPUTS,
+                new DiscreteInputsStrategy());
+        strategyMap.put(ModbusClientReadFunction.COILS,
+                new DiscreteCoilsStrategy());
     }
 
     @PostConstruct

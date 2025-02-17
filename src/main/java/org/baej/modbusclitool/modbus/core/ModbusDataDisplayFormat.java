@@ -1,6 +1,6 @@
 package org.baej.modbusclitool.modbus.core;
 
-public enum ModbusDataFormat {
+public enum ModbusDataDisplayFormat {
     SHORT_INT(2),
     INT(4),
     LONG_INT(8),
@@ -9,7 +9,7 @@ public enum ModbusDataFormat {
 
     private final int valueLength;
 
-    ModbusDataFormat(int valueLength) {
+    ModbusDataDisplayFormat(int valueLength) {
         this.valueLength = valueLength;
     }
 

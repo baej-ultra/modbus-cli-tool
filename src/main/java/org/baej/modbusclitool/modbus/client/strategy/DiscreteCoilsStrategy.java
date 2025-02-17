@@ -1,13 +1,14 @@
-package org.baej.modbusclitool.modbus.client;
+package org.baej.modbusclitool.modbus.client.strategy;
 
 import com.digitalpetri.modbus.client.ModbusClient;
 import com.digitalpetri.modbus.exceptions.ModbusExecutionException;
 import com.digitalpetri.modbus.exceptions.ModbusResponseException;
 import com.digitalpetri.modbus.exceptions.ModbusTimeoutException;
-import com.digitalpetri.modbus.pdu.ReadHoldingRegistersRequest;
+import com.digitalpetri.modbus.pdu.ReadCoilsRequest;
+import org.baej.modbusclitool.modbus.client.ModbusClientPollingParams;
 import org.baej.modbusclitool.modbus.core.ModbusData;
 
-public class HoldingRegistersStrategy implements ModbusRequestStrategy {
+public class DiscreteCoilsStrategy implements ModbusRequestStrategy {
 
     @Override
     public ModbusData request(ModbusClient client, ModbusClientPollingParams params) {
@@ -17,9 +18,9 @@ public class HoldingRegistersStrategy implements ModbusRequestStrategy {
         byte[] registers;
 
         try {
-            var req = new ReadHoldingRegistersRequest(address, quantity);
-            var response = client.readHoldingRegisters(unitId, req);
-            registers = response.registers();
+            var req = new ReadCoilsRequest(address, quantity);
+            var response = client.readCoils(unitId, req);
+            registers = response.coils();
         } catch (ModbusExecutionException | ModbusResponseException | ModbusTimeoutException e) {
             throw new RuntimeException(e);
         }
