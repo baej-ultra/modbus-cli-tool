@@ -2,33 +2,50 @@ package org.baej.modbusclitool.modbus.core;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Collections;
-import java.util.Map;
-import java.util.TreeMap;
-
-import static org.baej.modbusclitool.modbus.core.ModbusDataByteOrder.BIG_ENDIAN_SWAP;
-import static org.baej.modbusclitool.modbus.core.ModbusDataByteOrder.SMALL_ENDIAN_SWAP;
+import java.util.*;
 
 public class ModbusData {
 
-    private final Map<Integer, Number> values = new TreeMap<>();
+    private final List<ModbusValue> values;
+    private final ModbusDataFormat dataFormat;
+    private final ModbusDataByteOrder byteOrder;
+    private final boolean byteSwap;
 
-    public ModbusData(byte[] dataBytes, ModbusDataFormat dataFormat, ModbusDataByteOrder byteOrder) {
-        processData(dataBytes, dataFormat, byteOrder);
+    public ModbusData(byte[] dataBytes, ModbusDataFormat dataFormat, ModbusDataByteOrder byteOrder, boolean byteSwap) {
+        values = new ArrayList<>(dataBytes.length / 4);
+        this.byteSwap = byteSwap;
+        this.dataFormat = dataFormat;
+        this.byteOrder = byteOrder;
+        processData(dataBytes);
     }
 
-    private void processData(byte[] dataBytes, ModbusDataFormat dataFormat, ModbusDataByteOrder byteOrder) {
+    public List<ModbusValue> getValues() {
+        return Collections.unmodifiableList(values);
+    }
+
+    public ModbusDataFormat getDataFormat() {
+        return dataFormat;
+    }
+
+    public ModbusDataByteOrder getByteOrder() {
+        return byteOrder;
+    }
+
+    public boolean isByteSwap() {
+        return byteSwap;
+    }
+
+    private void processData(byte[] dataBytes) {
         values.clear();
 
-        // TODO Consider truncating the byte array to fit selected data type ad appending value map
-        //
+        // TODO Consider truncating the byte array to fit selected data type and appending value map with short ints
         if (dataBytes.length % dataFormat.getValueLength() != 0) {
-            throw new IllegalArgumentException("Input byte array length doesn't match selected data format");
+            throw new IllegalArgumentException("Register range doesn't match selected data format");
         }
 
         // Byte swapping for those rare occurrences when manufacturers
         // get high and decide to implement modbus this way
-        if (byteOrder == BIG_ENDIAN_SWAP || byteOrder == SMALL_ENDIAN_SWAP) {
+        if (byteSwap) {
             byte temp;
             for (int i = 0; i < dataBytes.length - 1; i++) {
                 temp = dataBytes[i];
@@ -39,26 +56,24 @@ public class ModbusData {
 
         // Byte order
         ByteOrder bo = switch (byteOrder) {
-            case BIG_ENDIAN, BIG_ENDIAN_SWAP -> ByteOrder.BIG_ENDIAN;
-            case SMALL_ENDIAN, SMALL_ENDIAN_SWAP -> ByteOrder.LITTLE_ENDIAN;
+            case BIG_ENDIAN -> ByteOrder.BIG_ENDIAN;
+            case SMALL_ENDIAN -> ByteOrder.LITTLE_ENDIAN;
         };
 
+        // Parse data
         int valueLength = dataFormat.getValueLength();
         int valueCount = dataBytes.length / valueLength;
         for (int i = 0; i < valueCount; i++) {
-            int index = i * dataFormat.getValueLength();
+            int index = i * dataFormat.getValueLength(); // one register is two bytes
             var buffer = ByteBuffer.wrap(dataBytes, index, valueLength).order(bo);
             switch (dataFormat) {
-                case INT -> values.put(index, buffer.getShort());
-                case LONG_INT -> values.put(index, buffer.getInt());
-                case FLOAT -> values.put(index, buffer.getFloat());
-                case DOUBLE -> values.put(index, buffer.getDouble());
+                case SHORT_INT -> values.add(new ModbusValue(index/2, buffer.getShort()));
+                case INT -> values.add(new ModbusValue(index/2, buffer.getInt()));
+                case LONG_INT -> values.add(new ModbusValue(index/2, buffer.getLong()));
+                case FLOAT -> values.add(new ModbusValue(index/2, buffer.getFloat()));
+                case DOUBLE -> values.add(new ModbusValue(index/2, buffer.getDouble()));
             }
         }
-    }
-
-    public Map<Integer, Number> getValues() {
-        return Collections.unmodifiableMap(values);
     }
 
 }

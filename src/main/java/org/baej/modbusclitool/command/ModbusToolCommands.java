@@ -3,42 +3,45 @@ package org.baej.modbusclitool.command;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.baej.modbusclitool.exception.InvalidModbusConnectionParameterException;
 import org.baej.modbusclitool.modbus.client.ModbusClientConnectionParams;
+import org.baej.modbusclitool.modbus.client.ModbusClientPollingParams;
 import org.baej.modbusclitool.modbus.client.ModbusConnectionManager;
-import org.baej.modbusclitool.modbus.client.ModbusPollingService;
+import org.baej.modbusclitool.modbus.client.ModbusDataPollingService;
+import org.baej.modbusclitool.modbus.core.ModbusDataFormat;
 import org.jline.terminal.Terminal;
 import org.springframework.shell.component.flow.ComponentFlow;
-import org.springframework.shell.component.message.ShellMessageBuilder;
+import org.springframework.shell.component.flow.SelectItem;
 import org.springframework.shell.component.view.TerminalUI;
-import org.springframework.shell.component.view.control.BoxView;
 import org.springframework.shell.component.view.event.EventLoop;
-import org.springframework.shell.component.view.event.KeyEvent.Key;
-import org.springframework.shell.geom.HorizontalAlign;
-import org.springframework.shell.geom.VerticalAlign;
+import org.springframework.shell.component.view.event.KeyEvent;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
+import org.springframework.shell.standard.ShellOption;
 
 import java.io.IOException;
-import java.io.Reader;
+import java.util.List;
+import java.util.Map;
 
 @ShellComponent
 public class ModbusToolCommands {
 
     private final ModbusConnectionManager connectionManager;
-    private final ModbusPollingService pollingService;
+    private final ModbusDataPollingService pollingService;
     private final ModbusClientConnectionParams connectionParams;
     private final ComponentFlow.Builder componentFlowBuilder;
     private final Terminal terminal;
+    private final ModbusClientPollingParams modbusClientPollingParams;
     public volatile int i = 0;
 
     public ModbusToolCommands(ModbusConnectionManager connectionManager,
-                              ModbusPollingService pollingService,
-                              ModbusClientConnectionParams connectionParams, ComponentFlow.Builder componentFlowBuilder,
-                              Terminal terminal) {
+                              ModbusDataPollingService pollingService,
+                              ModbusClientConnectionParams connectionParams,
+                              ComponentFlow.Builder componentFlowBuilder, Terminal terminal, ModbusClientPollingParams modbusClientPollingParams) {
         this.connectionManager = connectionManager;
         this.pollingService = pollingService;
         this.connectionParams = connectionParams;
         this.componentFlowBuilder = componentFlowBuilder;
         this.terminal = terminal;
+        this.modbusClientPollingParams = modbusClientPollingParams;
     }
 
     @ShellMethod(value = "Set modbus connection parameters")
@@ -46,59 +49,32 @@ public class ModbusToolCommands {
         runConnectionParametersFlow();
     }
 
-    @ShellMethod
-    public void testPoll() throws IOException {
-        // to be moved
+    @ShellMethod(value = "Connect to ModbusTCP Server")
+    public String connect() {
         connectionManager.connect();
-        pollingService.startPolling();
+        return "Connected to " + connectionParams.getHost();
+    }
 
-        Reader reader = terminal.reader();
-        while (true) {
-            if (reader.read() == 'q') {
-                pollingService.stopPolling();
-                terminal.writer().print("\033[H\033[2J");
-                break;
-            }
+    @ShellMethod(value = "Poll")
+    public void poll(@ShellOption(defaultValue = "0") int interval) throws IOException {
+        if (interval == 0) {
+            pollingService.poll();
+        } else {
+            pollingService.startPolling(interval);
+            TerminalUI ui = new TerminalUI(terminal);
+            EventLoop eventLoop = ui.getEventLoop();
+            eventLoop.keyEvents()
+                    .subscribe(event -> {
+                        if (event.getPlainKey() == KeyEvent.Key.q && event.hasCtrl()) {
+                            pollingService.stopPolling();
+                        }
+                    });
         }
     }
 
-    @ShellMethod
-    public void uiTest() {
-        TerminalUI ui = new TerminalUI(terminal);
-
-        Thread thread = new Thread(() -> {
-            while (true) {
-                i += 1;
-                try {
-                    Thread.sleep(1000);
-                    ui.redraw();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-
-            }
-        });
-
-        thread.start();
-
-        BoxView boxView = new BoxView();
-        boxView.setDrawFunction((screen, rect) -> {
-            screen.writerBuilder().build()
-                    .text(Integer.toString(i), rect, HorizontalAlign.CENTER, VerticalAlign.CENTER);
-            return rect;
-        });
-
-        ui.configure(boxView);
-        ui.setRoot(boxView, true);
-
-        EventLoop eventLoop = ui.getEventLoop();
-        eventLoop.keyEvents()
-                .subscribe(event -> {
-                    if (event.getPlainKey() == Key.q && event.hasCtrl()) {
-                        eventLoop.dispatch(ShellMessageBuilder.ofInterrupt());
-                    }
-                });
-        ui.run();
+    @ShellMethod(value = "Poll settings")
+    public void pollSettings() {
+        runPollingParametersFlow();
     }
 
     private void runConnectionParametersFlow() {
@@ -143,6 +119,56 @@ public class ModbusToolCommands {
         connectionParams.setHost(host);
         connectionParams.setPort(port);
         connectionParams.setTimeout(timeout);
+    }
+
+    private void runPollingParametersFlow() {
+        ComponentFlow flow = componentFlowBuilder.clone().reset()
+                .withStringInput("id")
+                .name("Unit ID")
+                .defaultValue(Integer.toString(modbusClientPollingParams.getUnitId()))
+                .and()
+                .withStringInput("start")
+                .name("Starting address")
+                .defaultValue(Integer.toString(modbusClientPollingParams.getStartingAddress()))
+                .and()
+                .withStringInput("quantity")
+                .name("Quantity")
+                .defaultValue(Integer.toString(modbusClientPollingParams.getQuantity()))
+                .and()
+                .withSingleItemSelector("format")
+                .name("Format")
+                .selectItems(List.of(
+                        SelectItem.of("Int16", "SHORT_INT"),
+                        SelectItem.of("Int32", "INT"),
+                        SelectItem.of("Int64", "LONG_INT"),
+                        SelectItem.of("Float", "FLOAT"),
+                        SelectItem.of("Double", "DOUBLE")
+                ))
+                .and()
+                .withSingleItemSelector("endian")
+                .name("Endianness")
+                .selectItems(List.of(
+                        SelectItem.of("Big-endian", "BIG_ENDIAN"),
+                        SelectItem.of("Small-endian", "SMALL_ENDIAN")
+                ))
+                .and()
+                .withSingleItemSelector("swap")
+                .name("Byte swap")
+                .selectItems(Map.of(
+                        "NO", "no",
+                        "YES", "yes"
+                ))
+                .and()
+                .build();
+
+        var result = flow
+                .run()
+                .getContext();
+        modbusClientPollingParams.setUnitId(Integer.parseInt(result.get("id")));
+        modbusClientPollingParams.setStartingAddress(Integer.parseInt(result.get("start")));
+        modbusClientPollingParams.setQuantity(Integer.parseInt(result.get("quantity")));
+        modbusClientPollingParams.setDataFormat(ModbusDataFormat.valueOf(result.get("format")));
+        modbusClientPollingParams.setByteSwap(result.get("endian").equals("yes"));
     }
 
 }

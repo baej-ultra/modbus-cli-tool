@@ -8,8 +8,9 @@ import org.springframework.stereotype.Component;
 public class ModbusClientPollingParams {
 
     private int unitId = 1;
-    private int pollingInterval = 1000;
-    private ModbusDataFormat dataFormat = ModbusDataFormat.INT;
+    private int startingAddress = 0;
+    private int quantity = 10;
+    private ModbusDataFormat dataFormat = ModbusDataFormat.FLOAT;
     private ModbusDataByteOrder byteOrder = ModbusDataByteOrder.BIG_ENDIAN;
     private boolean byteSwap = false;
 
@@ -19,14 +20,6 @@ public class ModbusClientPollingParams {
 
     public void setUnitId(int unitId) {
         this.unitId = unitId;
-    }
-
-    public int getPollingInterval() {
-        return pollingInterval;
-    }
-
-    public void setPollingInterval(int pollingInterval) {
-        this.pollingInterval = pollingInterval;
     }
 
     public ModbusDataFormat getDataFormat() {
@@ -51,5 +44,21 @@ public class ModbusClientPollingParams {
 
     public void setByteSwap(boolean byteSwap) {
         this.byteSwap = byteSwap;
+    }
+
+    public int getStartingAddress() {
+        return startingAddress;
+    }
+
+    public void setStartingAddress(int startingAddress) {
+        this.startingAddress = startingAddress;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
     }
 }

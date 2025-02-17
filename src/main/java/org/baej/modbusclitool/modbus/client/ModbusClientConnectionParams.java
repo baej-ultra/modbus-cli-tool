@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class ModbusClientConnectionParams {
 
-    private String host = "127.0.0.1";
+    private String host = "192.168.94.10";
     private int port = 502;
     private int timeout = 5000;
 
