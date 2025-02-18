@@ -1,31 +1,14 @@
 package org.baej.modbusclitool.modbus.client.strategy;
 
-import com.digitalpetri.modbus.client.ModbusClient;
-import com.digitalpetri.modbus.exceptions.ModbusExecutionException;
-import com.digitalpetri.modbus.exceptions.ModbusResponseException;
-import com.digitalpetri.modbus.exceptions.ModbusTimeoutException;
 import com.digitalpetri.modbus.pdu.ReadCoilsRequest;
-import org.baej.modbusclitool.modbus.client.ModbusClientPollingParams;
-import org.baej.modbusclitool.modbus.core.ModbusData;
+import com.digitalpetri.modbus.pdu.ReadCoilsResponse;
 
-public class DiscreteCoilsStrategy implements ModbusRequestStrategy {
+public class DiscreteCoilsStrategy extends AbstractModbusRequestStrategy<ReadCoilsResponse> {
 
-    @Override
-    public ModbusData request(ModbusClient client, ModbusClientPollingParams params) {
-        int address = params.getStartingAddress();
-        int quantity = params.getQuantity();
-        int unitId = params.getUnitId();
-        byte[] registers;
-
-        try {
+    public DiscreteCoilsStrategy() {
+        super((client, unitId, address, quantity) -> {
             var req = new ReadCoilsRequest(address, quantity);
-            var response = client.readCoils(unitId, req);
-            registers = response.coils();
-        } catch (ModbusExecutionException | ModbusResponseException | ModbusTimeoutException e) {
-            throw new RuntimeException(e);
-        }
-
-        return new ModbusData(registers, params.getDataFormat(),
-                params.getByteOrder(), params.isByteSwap());
+            return client.readCoils(unitId, req);
+        }, ReadCoilsResponse::coils);
     }
 }

@@ -1,4 +1,4 @@
-package org.baej.modbusclitool.modbus.core;
+package org.baej.modbusclitool.modbus.client.core;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -67,6 +67,7 @@ public class ModbusData {
             int index = i * dataFormat.getValueLength(); // one register is two bytes
             var buffer = ByteBuffer.wrap(dataBytes, index, valueLength).order(bo);
             switch (dataFormat) {
+                case BYTE -> values.add(new ModbusValue(index, buffer.get()));
                 case SHORT_INT -> values.add(new ModbusValue(index/2, buffer.getShort()));
                 case INT -> values.add(new ModbusValue(index/2, buffer.getInt()));
                 case LONG_INT -> values.add(new ModbusValue(index/2, buffer.getLong()));

@@ -1,31 +1,14 @@
 package org.baej.modbusclitool.modbus.client.strategy;
 
-import com.digitalpetri.modbus.client.ModbusClient;
-import com.digitalpetri.modbus.exceptions.ModbusExecutionException;
-import com.digitalpetri.modbus.exceptions.ModbusResponseException;
-import com.digitalpetri.modbus.exceptions.ModbusTimeoutException;
 import com.digitalpetri.modbus.pdu.ReadInputRegistersRequest;
-import org.baej.modbusclitool.modbus.client.ModbusClientPollingParams;
-import org.baej.modbusclitool.modbus.core.ModbusData;
+import com.digitalpetri.modbus.pdu.ReadInputRegistersResponse;
 
-public class InputRegistersStrategy implements ModbusRequestStrategy {
+public class InputRegistersStrategy extends AbstractModbusRequestStrategy<ReadInputRegistersResponse> {
 
-    @Override
-    public ModbusData request(ModbusClient client, ModbusClientPollingParams params) {
-        int address = params.getStartingAddress();
-        int quantity = params.getQuantity();
-        int unitId = params.getUnitId();
-        byte[] registers;
-
-        try {
+    public InputRegistersStrategy() {
+        super((client, unitId, address, quantity) -> {
             var req = new ReadInputRegistersRequest(address, quantity);
-            var response = client.readInputRegisters(unitId, req);
-            registers = response.registers();
-        } catch (ModbusExecutionException | ModbusResponseException | ModbusTimeoutException e) {
-            throw new RuntimeException(e);
-        }
-
-        return new ModbusData(registers, params.getDataFormat(),
-                params.getByteOrder(), params.isByteSwap());
+            return client.readInputRegisters(unitId, req);
+        }, ReadInputRegistersResponse::registers);
     }
 }

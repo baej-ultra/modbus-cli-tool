@@ -1,4 +1,4 @@
-package org.baej.modbusclitool.modbus.core;
+package org.baej.modbusclitool.modbus.client.core;
 
 public class ModbusValue {
 

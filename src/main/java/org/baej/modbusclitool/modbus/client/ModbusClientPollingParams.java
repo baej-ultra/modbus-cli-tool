@@ -1,16 +1,16 @@
 package org.baej.modbusclitool.modbus.client;
 
-import org.baej.modbusclitool.modbus.core.ModbusDataByteOrder;
-import org.baej.modbusclitool.modbus.core.ModbusDataDisplayFormat;
+import org.baej.modbusclitool.modbus.client.core.ModbusDataByteOrder;
+import org.baej.modbusclitool.modbus.client.core.ModbusDataDisplayFormat;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ModbusClientPollingParams {
 
     private int unitId = 1;
-    private int startingAddress = 0;
+    private int startingAddress = 1;
     private int quantity = 10;
-    private ModbusDataDisplayFormat dataFormat = ModbusDataDisplayFormat.FLOAT;
+    private ModbusDataDisplayFormat dataFormat = ModbusDataDisplayFormat.SHORT_INT;
     private ModbusDataByteOrder byteOrder = ModbusDataByteOrder.BIG_ENDIAN;
     private boolean byteSwap = false;
     private ModbusClientReadFunction readFunction = ModbusClientReadFunction.HOLDING_REGISTERS;

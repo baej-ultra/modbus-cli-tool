@@ -2,10 +2,10 @@ package org.baej.modbusclitool.modbus.client;
 
 import com.digitalpetri.modbus.client.ModbusClient;
 import jakarta.annotation.PostConstruct;
-import org.baej.modbusclitool.modbus.ModbusTerminalDisplay;
+import org.baej.modbusclitool.modbus.client.core.ModbusData;
+import org.baej.modbusclitool.modbus.client.core.ModbusDataObservable;
 import org.baej.modbusclitool.modbus.client.strategy.*;
-import org.baej.modbusclitool.modbus.core.ModbusData;
-import org.baej.modbusclitool.modbus.core.ModbusDataObservable;
+import org.baej.modbusclitool.view.ModbusTerminalDisplay;
 import org.springframework.stereotype.Service;
 
 import java.util.EnumMap;
@@ -18,19 +18,22 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class ModbusDataPollingService extends ModbusDataObservable {
 
-    private final ModbusConnectionManager connectionManager;
+    private final ModbusClientConnectionManager connectionManager;
     private final ModbusClientPollingParams pollingParams;
-    private final ScheduledExecutorService executorService;
     private final ModbusTerminalDisplay modbusTerminalDisplay;
+    private final ScheduledExecutorService executorService;
+
     private boolean isPolling;
     private ScheduledFuture<?> scheduledFuture;
 
     private final Map<ModbusClientReadFunction, ModbusRequestStrategy>
             strategyMap = new EnumMap<>(ModbusClientReadFunction.class);
 
-    public ModbusDataPollingService(ModbusConnectionManager connectionManager,
-                                    ModbusClientPollingParams pollingParams,
-                                    ModbusTerminalDisplay modbusTerminalDisplay) {
+    public ModbusDataPollingService(
+            ModbusClientConnectionManager connectionManager,
+            ModbusClientPollingParams pollingParams,
+            ModbusTerminalDisplay modbusTerminalDisplay
+    ) {
         this.connectionManager = connectionManager;
         this.pollingParams = pollingParams;
         this.modbusTerminalDisplay = modbusTerminalDisplay;
@@ -52,6 +55,10 @@ public class ModbusDataPollingService extends ModbusDataObservable {
         this.subscribe(modbusTerminalDisplay);
     }
 
+    /*
+    Currently not utilized as I don't think it's really needed.
+    Leaving it here because I might change my mind ;).
+     */
     public void startPolling(int interval) {
         if (!connectionManager.isConnected()) {
             throw new RuntimeException("Client not connected");

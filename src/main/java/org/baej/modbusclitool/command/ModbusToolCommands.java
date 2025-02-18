@@ -2,12 +2,10 @@ package org.baej.modbusclitool.command;
 
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.baej.modbusclitool.exception.InvalidModbusConnectionParameterException;
-import org.baej.modbusclitool.modbus.client.ModbusClientConnectionParams;
-import org.baej.modbusclitool.modbus.client.ModbusClientPollingParams;
-import org.baej.modbusclitool.modbus.client.ModbusConnectionManager;
-import org.baej.modbusclitool.modbus.client.ModbusDataPollingService;
-import org.baej.modbusclitool.modbus.core.ModbusDataByteOrder;
-import org.baej.modbusclitool.modbus.core.ModbusDataDisplayFormat;
+import org.baej.modbusclitool.modbus.client.*;
+import org.baej.modbusclitool.modbus.client.core.ModbusDataByteOrder;
+import org.baej.modbusclitool.modbus.client.core.ModbusDataDisplayFormat;
+import org.baej.modbusclitool.modbus.server.ModbusServerConnectionManager;
 import org.springframework.shell.component.flow.ComponentFlow;
 import org.springframework.shell.component.flow.SelectItem;
 import org.springframework.shell.standard.ShellComponent;
@@ -19,30 +17,35 @@ import java.util.List;
 import java.util.Map;
 
 import static org.baej.modbusclitool.modbus.client.ModbusClientReadFunction.*;
-import static org.baej.modbusclitool.modbus.core.ModbusDataByteOrder.BIG_ENDIAN;
-import static org.baej.modbusclitool.modbus.core.ModbusDataByteOrder.SMALL_ENDIAN;
-import static org.baej.modbusclitool.modbus.core.ModbusDataDisplayFormat.*;
+import static org.baej.modbusclitool.modbus.client.core.ModbusDataByteOrder.BIG_ENDIAN;
+import static org.baej.modbusclitool.modbus.client.core.ModbusDataByteOrder.SMALL_ENDIAN;
+import static org.baej.modbusclitool.modbus.client.core.ModbusDataDisplayFormat.*;
 
 @ShellComponent
 public class ModbusToolCommands {
 
-    private final ModbusConnectionManager connectionManager;
+    private final ModbusClientConnectionManager connectionManager;
     private final ModbusDataPollingService pollingService;
     private final ModbusClientConnectionParams connectionParams;
     private final ComponentFlow.Builder componentFlowBuilder;
     private final ModbusClientPollingParams modbusClientPollingParams;
+    private final ModbusServerConnectionManager modbusServerConnectionManager;
     public volatile int i = 0;
 
-    public ModbusToolCommands(ModbusConnectionManager connectionManager,
-                              ModbusDataPollingService pollingService,
-                              ModbusClientConnectionParams connectionParams,
-                              ComponentFlow.Builder componentFlowBuilder,
-                              ModbusClientPollingParams modbusClientPollingParams) {
+    public ModbusToolCommands(
+            ModbusClientConnectionManager connectionManager,
+            ModbusDataPollingService pollingService,
+            ModbusClientConnectionParams connectionParams,
+            ComponentFlow.Builder componentFlowBuilder,
+            ModbusClientPollingParams modbusClientPollingParams,
+            ModbusServerConnectionManager modbusServerConnectionManager
+    ) {
         this.connectionManager = connectionManager;
         this.pollingService = pollingService;
         this.connectionParams = connectionParams;
         this.componentFlowBuilder = componentFlowBuilder;
         this.modbusClientPollingParams = modbusClientPollingParams;
+        this.modbusServerConnectionManager = modbusServerConnectionManager;
     }
 
     @ShellMethod(value = "Set modbus connection parameters")
@@ -56,6 +59,12 @@ public class ModbusToolCommands {
         return "Connected to " + connectionParams.getHost();
     }
 
+    @ShellMethod(value = "Disconnect from ModbusTCP Server")
+    public String disconnect() {
+        connectionManager.disconnect();
+        return "Disconnected";
+    }
+
     @ShellMethod(value = "Poll")
     public void poll(@ShellOption(defaultValue = "0") int interval) throws IOException {
         pollingService.poll();
@@ -64,6 +73,11 @@ public class ModbusToolCommands {
     @ShellMethod(value = "Poll settings")
     public void pollSettings() {
         runPollingParametersFlow();
+    }
+
+    @ShellMethod(value = "Server test")
+    public void serverTest() {
+        modbusServerConnectionManager.start();
     }
 
     private void runConnectionParametersFlow() {
@@ -136,12 +150,14 @@ public class ModbusToolCommands {
                 .withSingleItemSelector("format")
                 .name("Display format")
                 .selectItems(List.of(
+                        SelectItem.of("Byte", BYTE.toString()),
                         SelectItem.of("Int16", SHORT_INT.toString()),
                         SelectItem.of("Int32", INT.toString()),
                         SelectItem.of("Int64", LONG_INT.toString()),
                         SelectItem.of("Float", FLOAT.toString()),
                         SelectItem.of("Double", DOUBLE.toString())
                 ))
+                .defaultSelect(modbusClientPollingParams.getDataFormat().toString())
                 .and()
                 .withSingleItemSelector("endian")
                 .name("Endianness")
@@ -163,6 +179,7 @@ public class ModbusToolCommands {
                 .run()
                 .getContext();
 
+        modbusClientPollingParams.setReadFunction(ModbusClientReadFunction.valueOf(result.get("fun")));
         modbusClientPollingParams.setUnitId(Integer.parseInt(result.get("id")));
         modbusClientPollingParams.setStartingAddress(Integer.parseInt(result.get("start")));
         modbusClientPollingParams.setQuantity(Integer.parseInt(result.get("quantity")));

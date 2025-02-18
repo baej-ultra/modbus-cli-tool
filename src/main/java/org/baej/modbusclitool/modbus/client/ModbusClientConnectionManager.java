@@ -9,12 +9,12 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 
 @Component
-public class ModbusConnectionManager {
+public class ModbusClientConnectionManager {
 
     private ModbusClient modbusClient;
     private final ModbusClientConnectionParams connectionParams;
 
-    public ModbusConnectionManager(ModbusClientConnectionParams connectionParams) {
+    public ModbusClientConnectionManager(ModbusClientConnectionParams connectionParams) {
         this.connectionParams = connectionParams;
     }
 

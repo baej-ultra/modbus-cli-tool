@@ -1,9 +1,10 @@
-package org.baej.modbusclitool.modbus;
+package org.baej.modbusclitool.view;
 
 import org.baej.modbusclitool.modbus.client.ModbusClientPollingParams;
-import org.baej.modbusclitool.modbus.core.ModbusData;
-import org.baej.modbusclitool.modbus.core.ModbusDataObserver;
-import org.baej.modbusclitool.modbus.core.ModbusValue;
+import org.baej.modbusclitool.modbus.client.core.ModbusData;
+import org.baej.modbusclitool.modbus.client.core.ModbusDataObserver;
+import org.baej.modbusclitool.modbus.client.core.ModbusValue;
+import org.jline.terminal.Terminal;
 import org.springframework.shell.table.BeanListTableModel;
 import org.springframework.shell.table.BorderStyle;
 import org.springframework.shell.table.Table;
@@ -15,13 +16,18 @@ import java.util.LinkedHashMap;
 @Component
 public class ModbusTerminalDisplay implements ModbusDataObserver {
 
-
     private final ModbusClientPollingParams modbusClientPollingParams;
+    private final Terminal terminal;
 
-    public ModbusTerminalDisplay(ModbusClientPollingParams modbusClientPollingParams) {
+    public ModbusTerminalDisplay(ModbusClientPollingParams modbusClientPollingParams, Terminal terminal) {
         this.modbusClientPollingParams = modbusClientPollingParams;
+        this.terminal = terminal;
     }
 
+    /*
+    This could easily be a method called by polling service,
+    but I wanted to implement an observer pattern
+     */
     @Override
     public void onNewData(ModbusData data) {
         // Table headers
@@ -40,14 +46,14 @@ public class ModbusTerminalDisplay implements ModbusDataObserver {
                 .addFullBorder(BorderStyle.fancy_double)
                 .build();
 
-
         // Print to console
-        System.out.println(table.render(100));
-        System.out.printf("Starting address:%s Format:%s,%s Byte swap:%s\n",
+        terminal.writer().print(table.render(100));
+        terminal.writer().printf("Starting address:%s|Format:%s,%s|Byte swap:%s\n",
                 modbusClientPollingParams.getStartingAddress(),
                 data.getDataFormat(),
                 data.getByteOrder(),
                 data.isByteSwap()
         );
+        terminal.flush();
     }
 }
