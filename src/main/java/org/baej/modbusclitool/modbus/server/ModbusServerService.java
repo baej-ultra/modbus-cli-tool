@@ -10,6 +10,8 @@ import com.digitalpetri.modbus.server.ModbusServices;
 import org.springframework.stereotype.Service;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Random;
 
 @Service
 public class ModbusServerService implements ModbusServices {
@@ -25,12 +27,35 @@ public class ModbusServerService implements ModbusServices {
 
     @Override
     public ReadHoldingRegistersResponse readHoldingRegisters(ModbusRequestContext context, int unitId, ReadHoldingRegistersRequest request) throws ModbusResponseException, UnknownUnitIdException {
-        if (request.quantity()>5) {
-            throw new ModbusResponseException(FunctionCode.READ_HOLDING_REGISTERS, ExceptionCode.ILLEGAL_DATA_ADDRESS
-            );
+        Random random = new Random();
+        ByteBuffer buffer = ByteBuffer.allocate(1024);
+
+        // If request is bigger than buffer return Illegal Data Address error to client
+        if (request.address() >= buffer.capacity() / 2 || request.address() + request.quantity() > buffer.capacity() / 2) {
+            throw new ModbusResponseException(FunctionCode.READ_HOLDING_REGISTERS, ExceptionCode.ILLEGAL_DATA_ADDRESS);
         }
-        byte[] registers = ByteBuffer.allocate(4).putFloat(1.2f).array();
-        return new ReadHoldingRegistersResponse(registers);
+
+        for (int i = 0; i < 5; i++) {
+            buffer.putShort((short) random.nextInt(Short.MAX_VALUE + 1));
+        }
+        for (int i = 0; i < 5; i++) {
+            buffer.putInt(random.nextInt());
+        }
+        for (int i = 0; i < 5; i++) {
+            buffer.putLong(random.nextLong());
+        }
+        for (int i = 0; i < 5; i++) {
+            buffer.putFloat(random.nextFloat()*10);
+        }
+        for (int i = 0; i < 5; i++) {
+            buffer.putDouble(random.nextDouble()*100);
+        }
+
+        byte[] registers = buffer.array();
+        int start = request.address();
+        int end = request.address() + (request.quantity() * 2);
+
+        return new ReadHoldingRegistersResponse(Arrays.copyOfRange(registers, start, end));
     }
 
     @Override
