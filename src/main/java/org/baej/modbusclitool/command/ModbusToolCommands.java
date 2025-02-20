@@ -75,11 +75,6 @@ public class ModbusToolCommands {
         runPollingParametersFlow();
     }
 
-    @ShellMethod("Terminate the system.")
-    public String shutdown(boolean force) {
-        return "You said " + force;
-    }
-
     @ShellMethod(key = "server", value = "Modbus server")
     public String startServer(boolean stop, @ShellOption(defaultValue = "502") int port) {
         if (stop) {
