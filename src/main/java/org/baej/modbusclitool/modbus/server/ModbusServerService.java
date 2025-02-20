@@ -6,16 +6,29 @@ import com.digitalpetri.modbus.exceptions.UnknownUnitIdException;
 import com.digitalpetri.modbus.pdu.*;
 import com.digitalpetri.modbus.server.ModbusRequestContext;
 import com.digitalpetri.modbus.server.ModbusServices;
+import org.jline.terminal.Terminal;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
+import org.springframework.boot.LazyInitializationExcludeFilter;
 import org.springframework.stereotype.Service;
 
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.StringJoiner;
 
 @Service
 public class ModbusServerService implements ModbusServices {
 
     private final Random random = new Random();
+    private final Terminal terminal;
+    private final LazyInitializationExcludeFilter valueProviderLazyInitializationExcludeFilter;
+
+    public ModbusServerService(Terminal terminal, LazyInitializationExcludeFilter valueProviderLazyInitializationExcludeFilter) {
+        this.terminal = terminal;
+        this.valueProviderLazyInitializationExcludeFilter = valueProviderLazyInitializationExcludeFilter;
+    }
 
     @Override
     public ReadCoilsResponse readCoils(ModbusRequestContext context, int unitId, ReadCoilsRequest request) throws ModbusResponseException {
@@ -44,6 +57,64 @@ public class ModbusServerService implements ModbusServices {
     @Override
     public ReadWriteMultipleRegistersResponse readWriteMultipleRegisters(ModbusRequestContext context, int unitId, ReadWriteMultipleRegistersRequest request) throws ModbusResponseException, UnknownUnitIdException {
         return ModbusServices.super.readWriteMultipleRegisters(context, unitId, request);
+    }
+
+    @Override
+    public WriteSingleCoilResponse writeSingleCoil(ModbusRequestContext context, int unitId, WriteSingleCoilRequest request) {
+        // It's either 0x0000 or 0xFF00.
+        byte[] bytes = {(byte) ((request.value() >> 8) & 0xFF)};
+        printDiscrete(bytes, unitId, request.getFunctionCode(), request.address(), 1);
+        return new WriteSingleCoilResponse(request.address(), request.value());
+    }
+
+    @Override
+    public WriteSingleRegisterResponse writeSingleRegister(ModbusRequestContext context, int unitId, WriteSingleRegisterRequest request) throws ModbusResponseException, UnknownUnitIdException {
+        return ModbusServices.super.writeSingleRegister(context, unitId, request);
+    }
+
+    @Override
+    public WriteMultipleCoilsResponse writeMultipleCoils(ModbusRequestContext context, int unitId, WriteMultipleCoilsRequest request) throws ModbusResponseException, UnknownUnitIdException {
+        printDiscrete(request.values(), unitId, request.getFunctionCode(), request.address(), request.quantity());
+        return new WriteMultipleCoilsResponse(request.address(), request.quantity());
+    }
+
+    private void printDiscrete(byte[] values, int unitId, int functionCode, int address, int quantity) {
+        StringJoiner sj = new StringJoiner("][", "[", "]");
+
+        for (byte value : values) {
+            sj.add(String.format("%8s", Integer
+                            .toBinaryString(value & 0xFF))
+                    .replace(' ', '0'));
+        }
+
+        var as = new AttributedStringBuilder()
+                .append("TIMESTAMP ", AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN))
+                .append(Instant.now().toString())
+                .append("\n")
+                .append("FUNCTION CODE ", AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN))
+                .append(Integer.toString(functionCode))
+                .append("\n")
+                .append("ID ", AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN))
+                .append(Integer.toString(unitId))
+                .append("\n")
+                .append("ADDRESS ", AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN))
+                .append(Integer.toString(address))
+                .append("\n")
+                .append("QUANTITY ", AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN))
+                .append(Integer.toString(quantity))
+                .append("\n")
+                .append("DATA ", AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN))
+                .append(sj.toString())
+                .append("\n");
+
+        terminal.writer().println();
+        terminal.writer().printf(as.toAttributedString().toAnsi());
+        terminal.flush();
+    }
+
+    @Override
+    public WriteMultipleRegistersResponse writeMultipleRegisters(ModbusRequestContext context, int unitId, WriteMultipleRegistersRequest request) throws ModbusResponseException, UnknownUnitIdException {
+        return ModbusServices.super.writeMultipleRegisters(context, unitId, request);
     }
 
     /*
@@ -114,5 +185,9 @@ public class ModbusServerService implements ModbusServices {
         byte[] registers = buffer.array();
         int end = address + quantity;
         return Arrays.copyOfRange(registers, address, end);
+    }
+
+    private void printBytes(byte[] bytes) {
+
     }
 }

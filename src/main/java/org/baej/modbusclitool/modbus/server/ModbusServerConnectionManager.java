@@ -16,12 +16,12 @@ public class ModbusServerConnectionManager {
         this.modbusServerService = modbusServerService;
     }
 
-    public void start() {
+    public void start(int port) {
         if (modbusServer == null) {
 
-            var transport = NettyTcpServerTransport.create(cfg -> cfg.port = 503);
+            var transport = NettyTcpServerTransport.create(cfg -> cfg.port = port);
 
-            var modbusServer = ModbusTcpServer.create(transport, modbusServerService);
+            modbusServer = ModbusTcpServer.create(transport, modbusServerService);
             try {
                 modbusServer.start();
             } catch (ExecutionException | InterruptedException e) {

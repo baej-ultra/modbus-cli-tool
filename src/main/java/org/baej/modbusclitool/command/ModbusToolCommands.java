@@ -75,9 +75,23 @@ public class ModbusToolCommands {
         runPollingParametersFlow();
     }
 
-    @ShellMethod(value = "Server test")
-    public void serverTest() {
-        modbusServerConnectionManager.start();
+    @ShellMethod("Terminate the system.")
+    public String shutdown(boolean force) {
+        return "You said " + force;
+    }
+
+    @ShellMethod(key = "server", value = "Modbus server")
+    public String startServer(boolean stop, @ShellOption(defaultValue = "502") int port) {
+        if (stop) {
+            if (modbusServerConnectionManager.getModbusServer() != null) {
+                modbusServerConnectionManager.stop();
+                return "Server stopped.";
+            }
+            return "Server not started.";
+        }
+
+        modbusServerConnectionManager.start(port);
+        return "Server started on port %d.".formatted(port);
     }
 
     private void runConnectionParametersFlow() {
