@@ -23,4 +23,13 @@ It's a simple CLI tool for polling Modbus devices/slaves and starting a virtual 
 - 8-15 all false
 - 16-23 random
 <br><br>
+# How to run
+Linux/Mac
+<br>`mvnw spring-boot:run`
+<br>
+<br>Windows
+<br>`mvnw.cmd spring-boot:run`
+<br><br>Or Just build with Maven
+<br>`mvn clean package -DskipTests`
+
 ![Alt Text](https://s3.gifyu.com/images/bSqxq.gif)
