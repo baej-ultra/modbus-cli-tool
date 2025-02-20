@@ -18,10 +18,9 @@ public class ModbusServerConnectionManager {
 
     public void start(int port) {
         if (modbusServer == null) {
-
             var transport = NettyTcpServerTransport.create(cfg -> cfg.port = port);
-
             modbusServer = ModbusTcpServer.create(transport, modbusServerService);
+
             try {
                 modbusServer.start();
             } catch (ExecutionException | InterruptedException e) {
